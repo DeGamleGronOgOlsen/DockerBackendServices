@@ -1,0 +1,120 @@
+services:
+  auction-svc:
+    image: auction-svc:latest
+    hostname: auction-svc01
+    build:
+      context: ../auction-service/auctionServiceAPI
+      dockerfile: Dockerfile
+    container_name: "auction-svc"
+    environment:
+      - AuctionImagePath=/srv/resources/images
+      - MongoConnectionString=mongodb://root:rootpassword@mongodb:27017/?authSource=admin
+      - AuctionDatabase=auctions
+      - AuctionCollection=list
+      - GatewayUrl=http://gateway:4000
+      - ImagePath=/srv/resources/images
+      - RabbitMQ__Hostname=rabbitmq
+      - RabbitMQ__Port=5672
+      - RabbitMQ__Username=guest
+      - RabbitMQ__Password=guest
+    expose:
+      - "8080"
+    volumes:
+      - auction-images-volume:/srv/resources/images
+    networks:
+      - auctionnet
+
+  effect-svc:
+    image: effect-svc:latest
+    hostname: effect-svc01
+    build:
+      context: ../effect-service/effectServiceAPI
+      dockerfile: Dockerfile
+    environment:
+      - EffectImagePath=/srv/resources/effect-images
+      - MongoConnectionString=mongodb://root:rootpassword@mongodb:27017/?authSource=admin
+      - EffectDatabase=effects
+      - EffectCollection=list
+      - GatewayUrl=http://gateway:4000
+      - ImagePath=/srv/resources/effect-images
+    container_name: "effect-svc"
+    expose:
+      - "8080"
+    volumes:
+      - effect-images-volume:/srv/resources/effect-images
+    networks:
+      - auctionnet
+    
+  bidding-svc:
+    build:
+      context: ../BiddingService/biddingServiceAPI
+      dockerfile: Dockerfile
+    container_name: "bidding-svc"
+    expose:
+      - "8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - RabbitMQ__Hostname=rabbitmq
+      - RabbitMQ__Port=5672
+      - RabbitMQ__Username=guest
+      - RabbitMQ__Password=guest 
+    networks:
+      - auctionnet
+  
+  user-svc:
+    container_name: user-svc
+    build:
+      context: ../UserService/UserService
+      dockerfile: Dockerfile
+    restart: on-failure:10
+    expose:
+      - "8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: "http://+:8080"
+      Vault__Address: "http://vaulthost:8200"
+      Vault__Token: "00000000-0000-0000-0000-000000000000"
+    networks:
+      - auctionnet
+
+  auth-svc:
+    container_name: auth-svc
+    build:
+      context: ../AuthService/AuthService
+      dockerfile: Dockerfile
+    restart: on-failure:10
+    expose:
+      - "8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: "http://+:8080"
+      Vault__Address: "http://vaulthost:8200"
+      Vault__Token: "00000000-0000-0000-0000-000000000000"
+      UserServiceUrl: "http://gateway:4000"
+    networks:
+      - auctionnet
+
+  nginx:
+    image: nginx:latest
+    container_name: "gateway"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./www:/srv/www/data
+    depends_on:
+      - auction-svc
+      - effect-svc
+    ports:
+      - "4000:4000"
+    networks:
+      - auctionnet
+
+networks:
+  auctionnet:
+    name: auctionnet
+    external: true
+
+volumes:
+  auction-images-volume:
+    external: false
+  effect-images-volume:
+    external: false
