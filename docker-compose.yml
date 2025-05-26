@@ -17,6 +17,8 @@ services:
       - RabbitMQ__Port=5672
       - RabbitMQ__Username=guest
       - RabbitMQ__Password=guest
+      - Vault__Address=http://vaulthost:8200
+      - Vault__Token=00000000-0000-0000-0000-000000000000
     expose:
       - "8080"
     volumes:
@@ -37,6 +39,8 @@ services:
       - EffectCollection=list
       - GatewayUrl=http://gateway:4000
       - ImagePath=/srv/resources/effect-images
+      - Vault__Address=http://vaulthost:8200
+      - Vault__Token=00000000-0000-0000-0000-000000000000
     container_name: "effect-svc"
     expose:
       - "8080"
