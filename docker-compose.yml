@@ -48,7 +48,7 @@ services:
       - effect-images-volume:/srv/resources/effect-images
     networks:
       - auctionnet
-    
+
   bidding-svc:
     build:
       context: ../BiddingService/biddingServiceAPI
@@ -61,15 +61,14 @@ services:
       - RabbitMQ__Hostname=rabbitmq
       - RabbitMQ__Port=5672
       - RabbitMQ__Username=guest
-      - RabbitMQ__Password=guest 
+      - RabbitMQ__Password=guest
+      - Vault__Address=http://vaulthost:8200
+      - Vault__Token=00000000-0000-0000-0000-000000000000
     networks:
       - auctionnet
-  
   user-svc:
     container_name: user-svc
-    build:
-      context: ../UserService/UserService
-      dockerfile: Dockerfile
+    image: levinuet/groenolsen-user-service:1.2.0
     restart: on-failure:10
     expose:
       - "8080"
